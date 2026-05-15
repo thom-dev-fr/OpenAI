@@ -160,6 +160,54 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
     ///
     /// The gpt-4o-audio-preview model can also be used to [generate audio](https://platform.openai.com/docs/guides/audio). To request that this model generate both text and audio responses, you can use: `["text", "audio"]`
     public var modalities: [Self.ChatCompletionModalities]?
+
+    /// A dictionary of additional custom parameters to include in the request body.
+    ///
+    /// Use this property to send **non-standard fields** or **backend-specific options**
+    /// that are not part of the official OpenAI API schema, such as those
+    /// used by custom model servers like `llama.cpp`, `Ollama`, or private gateways.
+    ///
+    /// The contents of `extraParameters` are automatically merged into the
+    /// JSON payload sent to the API. Each key-value pair will appear as a top-level
+    /// field in the encoded request.
+    ///
+    /// For example, to disable reasoning mode in a `llama.cpp` backend:
+    ///
+    /// ```swift
+    /// let query = ChatQuery(
+    ///     model: "mistral",
+    ///     messages: [
+    ///         .system("You are a helpful assistant."),
+    ///         .user("Explain quantum mechanics simply.")
+    ///     ],
+    ///     extraParameters: [
+    ///         "chat_template_kwargs": AnyEncodable(["enable_thinking": false])
+    ///     ]
+    /// )
+    /// ```
+    ///
+    /// This will produce the following JSON:
+    ///
+    /// ```json
+    /// {
+    ///   "model": "mistral",
+    ///   "messages": [
+    ///     {"role": "system", "content": "You are a helpful assistant."},
+    ///     {"role": "user", "content": "Explain quantum mechanics simply."}
+    ///   ],
+    ///   "chat_template_kwargs": {
+    ///     "enable_thinking": false
+    ///   }
+    /// }
+    /// ```
+    ///
+    /// - Note: The keys in `extraParameters` must be valid JSON keys (`String`),
+    ///   and the values must conform to `Encodable` (wrapped in `AnyEncodable`).
+    /// - Important: This property is ignored by the official OpenAI API, but
+    ///   can be used to pass through experimental or backend-specific fields
+    ///   when working with OpenAI-compatible APIs.
+    ///
+  public var extraParameters: JSONObject? = nil
     
     public init(
         messages: [Self.ChatCompletionMessageParam],
@@ -189,7 +237,8 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         user: String? = nil,
         webSearchOptions: WebSearchOptions? = nil,
         stream: Bool = false,
-        streamOptions: StreamOptions? = nil
+        streamOptions: StreamOptions? = nil,
+        extraParameters: JSONObject? = nil
     ) {
         self.messages = messages
         self.model = model
@@ -219,6 +268,7 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         self.streamOptions = streamOptions
         self.audioOptions = audioOptions
         self.modalities = modalities
+        self.extraParameters = extraParameters
     }
     
     public enum ChatCompletionMessageParam: Codable, Equatable, Sendable {
@@ -1341,6 +1391,54 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         case streamOptions = "stream_options"
         case audioOptions = "audio"
         case modalities = "modalities"
+    }
+  
+    private struct DynamicCodingKeys: CodingKey {
+        var stringValue: String
+        init(_ string: String) { self.stringValue = string }
+        init?(stringValue: String) { self.stringValue = stringValue }
+        var intValue: Int? { nil }
+        init?(intValue: Int) { nil }
+    }
+  
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+      
+        try container.encode(messages, forKey: .messages)
+        try container.encode(model, forKey: .model)
+        try container.encodeIfPresent(modalities, forKey: .modalities)
+        try container.encodeIfPresent(audioOptions, forKey: .audioOptions)
+        try container.encodeIfPresent(reasoningEffort, forKey: .reasoningEffort)
+        try container.encodeIfPresent(frequencyPenalty, forKey: .frequencyPenalty)
+        try container.encodeIfPresent(logitBias, forKey: .logitBias)
+        try container.encodeIfPresent(logprobs, forKey: .logprobs)
+        try container.encodeIfPresent(maxCompletionTokens, forKey: .maxCompletionTokens)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encodeIfPresent(n, forKey: .n)
+        try container.encodeIfPresent(parallelToolCalls, forKey: .parallelToolCalls)
+        try container.encodeIfPresent(prediction, forKey: .prediction)
+        try container.encodeIfPresent(presencePenalty, forKey: .presencePenalty)
+        try container.encodeIfPresent(responseFormat, forKey: .responseFormat)
+        try container.encodeIfPresent(seed, forKey: .seed)
+        try container.encodeIfPresent(serviceTier, forKey: .serviceTier)
+        try container.encodeIfPresent(stop, forKey: .stop)
+        try container.encodeIfPresent(store, forKey: .store)
+        try container.encodeIfPresent(temperature, forKey: .temperature)
+        try container.encodeIfPresent(toolChoice, forKey: .toolChoice)
+        try container.encodeIfPresent(tools, forKey: .tools)
+        try container.encodeIfPresent(topLogprobs, forKey: .topLogprobs)
+        try container.encodeIfPresent(topP, forKey: .topP)
+        try container.encodeIfPresent(user, forKey: .user)
+        try container.encodeIfPresent(webSearchOptions, forKey: .webSearchOptions)
+        try container.encodeIfPresent(stream, forKey: .stream)
+        try container.encodeIfPresent(streamOptions, forKey: .streamOptions)
+        
+        if let extraParameters = extraParameters {
+            var dynamic = encoder.container(keyedBy: DynamicCodingKeys.self)
+            for (key, value) in extraParameters {
+                try dynamic.encode(value, forKey: .init(key))
+            }
+        }
     }
 }
 

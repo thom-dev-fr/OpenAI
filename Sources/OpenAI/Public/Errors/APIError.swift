@@ -52,7 +52,12 @@ public struct APIError: Error, Decodable, Equatable {
     
     self.type = try container.decode(String.self, forKey: .type)
     self.param = try container.decodeIfPresent(String.self, forKey: .param)
-    self.code = try container.decodeIfPresent(String.self, forKey: .code)
+    if let codeNumber = try container.decodeIfPresent(Int.self, forKey: .code) {
+      self.code = String(codeNumber)
+    }
+    else {
+      self.code = try container.decodeIfPresent(String.self, forKey: .code)
+    }
   }
 }
 

@@ -27,4 +27,4 @@ extension Decimal: JSONDocument {}
 extension Array: JSONDocument where Element: JSONDocument {}
 extension Dictionary: JSONDocument where Key == String, Value: JSONDocument {}
 
-typealias JSONObject = Dictionary<String, AnyJSONDocument>
+public typealias JSONObject = Dictionary<String, AnyJSONDocument>

@@ -9,7 +9,7 @@ import Foundation
 
 public struct AnyJSONDocument: JSONDocument {
     // The value is internal instead of private for testability
-    let value: any JSONDocument
+    public let value: any JSONDocument
 
     public init(_ value: any JSONDocument) {
         self.value = value

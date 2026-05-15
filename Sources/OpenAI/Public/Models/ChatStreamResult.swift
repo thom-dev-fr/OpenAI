@@ -220,6 +220,58 @@ public struct ChatStreamResult: Codable, Equatable, Sendable {
     ///
     /// - Note: the field is not a part of OpenAI API but is used by other providers
     public let citations: [String]?
+  
+    public let promptProgress: PromptProgress?
+    public let timings: Timings?
+
+    public struct PromptProgress: Codable, Equatable, Sendable {
+        public let total: Int
+        public let cache: Int
+        public let processed: Int
+        public let timeInMs: Int64
+      
+        public var progress: Float {
+            Float(processed) / Float(total)
+        }
+        
+        public var isCompleted: Bool {
+            processed == total
+        }
+      
+        public enum CodingKeys: String, CodingKey {
+            case total
+            case cache
+            case processed
+            case timeInMs = "time_ms"
+        }
+    }
+  
+    public struct Timings: Codable, Equatable, Sendable {
+        /// Number of prompt tokens reused from cache
+        public let cacheN: Int
+        /// Number of prompt tokens being processed
+        public let promptN: Int
+        public let promptMs: Double
+        public let promptPerTokenMs: Double
+        public let promptPerSecond: Double
+        /// Number of predicted tokens
+        public let predictedN: Int
+        public let predictedMs: Double
+        public let predictedPerTokenMs: Double
+        public let predictedPerSecond: Double
+
+        public enum CodingKeys: String, CodingKey {
+            case cacheN = "cache_n"
+            case promptN = "prompt_n"
+            case promptMs = "prompt_ms"
+            case promptPerTokenMs = "prompt_per_token_ms"
+            case promptPerSecond = "prompt_per_second"
+            case predictedN = "predicted_n"
+            case predictedMs = "predicted_ms"
+            case predictedPerTokenMs = "predicted_per_token_ms"
+            case predictedPerSecond = "predicted_per_second"
+        }
+    }
 
     public enum CodingKeys: String, CodingKey {
         case id
@@ -231,6 +283,8 @@ public struct ChatStreamResult: Codable, Equatable, Sendable {
         case systemFingerprint = "system_fingerprint"
         case usage
         case serviceTier = "service_tier"
+        case promptProgress = "prompt_progress"
+        case timings
     }
     
     public init(from decoder: any Decoder) throws {
@@ -252,5 +306,7 @@ public struct ChatStreamResult: Codable, Equatable, Sendable {
         // We're just going to ignore all the errors here by using optional try and fallback to nil `usage`
         self.usage = try? container.decodeIfPresent(ChatResult.CompletionUsage.self, forKey: .usage)
         self.serviceTier = try container.decodeIfPresent(ServiceTier.self, forKey: .serviceTier)
+        self.promptProgress = try? container.decodeIfPresent(PromptProgress.self, forKey: .promptProgress)
+        self.timings = try? container.decodeIfPresent(Timings.self, forKey: .timings)
     }
 }
