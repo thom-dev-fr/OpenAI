@@ -1685,6 +1685,35 @@ The top priority of this SDK is OpenAI, and the main rule is for all the main ty
 
 That said we still want to give a support for other providers.
 
+### Additional request properties
+
+Use `extraBody` on `ChatQuery` or `CreateModelResponseQuery` to send JSON properties that the SDK does not model. Properties are added at the top level of the HTTP body, including for streaming requests. A key matching a standard property replaces that property's value; nested objects are replaced, not merged.
+
+```swift
+let query = ChatQuery(
+    messages: [.user(.init(content: .string("Hello")))],
+    model: "your-local-model",
+    extraBody: [
+        "chat_template_kwargs": AnyJSONDocument(["enable_thinking": false]),
+        "top_k": AnyJSONDocument(40)
+    ]
+)
+let result = try await openAI.chats(query: query)
+
+// The same extraBody is sent when using openAI.chatsStream(query: query).
+let responseQuery = CreateModelResponseQuery(
+    input: .textInput("Hello"),
+    model: "your-local-model",
+    extraBody: ["top_k": AnyJSONDocument(40)]
+)
+```
+
+Choose properties supported by your server. To send an explicit JSON `null`, use `AnyJSONDocument.null`, for example `extraBody: ["temperature": .null]`. Omitting a key and sending `null` are different operations. Keep the `stream` property consistent with the client method you call; overriding it through `extraBody` also overrides the value sent over HTTP.
+
+#### Saving queries
+
+`extraBody` is encoded into a request but is not restored when decoding a query. A JSON encode/decode round trip therefore does **not** preserve these properties. Save the `JSONObject` dictionary separately using `JSONEncoder`, restore it using `JSONDecoder`, and supply it as `extraBody` when constructing the query again.
+
 ### Option 1: Use `.relaxed` parsing option
 `.relaxed` parsing option handles both missing and additional key/values in responses. It should be sufficient for most use-cases. Let us know if it doesn't cover any case you need.
 

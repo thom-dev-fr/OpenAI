@@ -160,6 +160,15 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
     ///
     /// The gpt-4o-audio-preview model can also be used to [generate audio](https://platform.openai.com/docs/guides/audio). To request that this model generate both text and audio responses, you can use: `["text", "audio"]`
     public var modalities: [Self.ChatCompletionModalities]?
+
+    /// Add additional JSON properties to the request
+    ///
+    /// Properties are added at the top level of the request body. A property with the same
+    /// JSON name as a standard property overrides its value, as with `extra_body` in the
+    /// [official Python SDK](https://github.com/openai/openai-python#undocumented-request-params).
+    ///
+    /// - Note: `extraBody` is only encoded. Decoding a `ChatQuery` leaves it `nil`.
+    public var extraBody: JSONObject? = nil
     
     public init(
         messages: [Self.ChatCompletionMessageParam],
@@ -191,6 +200,70 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         stream: Bool = false,
         streamOptions: StreamOptions? = nil
     ) {
+        self.init(
+            messages: messages,
+            model: model,
+            modalities: modalities,
+            audioOptions: audioOptions,
+            reasoningEffort: reasoningEffort,
+            frequencyPenalty: frequencyPenalty,
+            logitBias: logitBias,
+            logprobs: logprobs,
+            maxCompletionTokens: maxCompletionTokens,
+            metadata: metadata,
+            n: n,
+            parallelToolCalls: parallelToolCalls,
+            prediction: prediction,
+            presencePenalty: presencePenalty,
+            responseFormat: responseFormat,
+            seed: seed,
+            serviceTier: serviceTier,
+            stop: stop,
+            store: store,
+            temperature: temperature,
+            toolChoice: toolChoice,
+            tools: tools,
+            topLogprobs: topLogprobs,
+            topP: topP,
+            user: user,
+            webSearchOptions: webSearchOptions,
+            stream: stream,
+            streamOptions: streamOptions,
+            extraBody: nil
+        )
+    }
+
+    public init(
+        messages: [Self.ChatCompletionMessageParam],
+        model: Model,
+        modalities: [Self.ChatCompletionModalities]? = nil,
+        audioOptions: Self.AudioOptions? = nil,
+        reasoningEffort: ReasoningEffort? = nil,
+        frequencyPenalty: Double? = nil,
+        logitBias: [String : Int]? = nil,
+        logprobs: Bool? = nil,
+        maxCompletionTokens: Int? = nil,
+        metadata: [String: String]? = nil,
+        n: Int? = nil,
+        parallelToolCalls: Bool? = nil,
+        prediction: PredictedOutputConfig? = nil,
+        presencePenalty: Double? = nil,
+        responseFormat: Self.ResponseFormat? = nil,
+        seed: Int? = nil,
+        serviceTier: ServiceTier? = nil,
+        stop: Self.Stop? = nil,
+        store: Bool? = nil,
+        temperature: Double? = nil,
+        toolChoice: Self.ChatCompletionFunctionCallOptionParam? = nil,
+        tools: [Self.ChatCompletionToolParam]? = nil,
+        topLogprobs: Int? = nil,
+        topP: Double? = nil,
+        user: String? = nil,
+        webSearchOptions: WebSearchOptions? = nil,
+        stream: Bool = false,
+        streamOptions: StreamOptions? = nil,
+        extraBody: JSONObject?
+    ) {
         self.messages = messages
         self.model = model
         self.reasoningEffort = reasoningEffort
@@ -219,6 +292,7 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         self.streamOptions = streamOptions
         self.audioOptions = audioOptions
         self.modalities = modalities
+        self.extraBody = extraBody
     }
     
     public enum ChatCompletionMessageParam: Codable, Equatable, Sendable {
@@ -1317,7 +1391,7 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         }
     }
 
-    public enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey, CaseIterable {
         case messages
         case model
         case reasoningEffort = "reasoning_effort"
@@ -1347,6 +1421,44 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         case streamOptions = "stream_options"
         case audioOptions = "audio"
         case modalities = "modalities"
+    }
+
+    // Hand-written so that `extraBody` can be added as top-level fields.
+    // Every case of `CodingKeys` must be encoded here; `ChatQueryCodingTests` checks this.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(messages, forKey: .messages)
+        try container.encode(model, forKey: .model)
+        try container.encodeIfPresent(reasoningEffort, forKey: .reasoningEffort)
+        try container.encodeIfPresent(frequencyPenalty, forKey: .frequencyPenalty)
+        try container.encodeIfPresent(logitBias, forKey: .logitBias)
+        try container.encodeIfPresent(logprobs, forKey: .logprobs)
+        try container.encodeIfPresent(maxTokens, forKey: .maxTokens)
+        try container.encodeIfPresent(maxCompletionTokens, forKey: .maxCompletionTokens)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encodeIfPresent(n, forKey: .n)
+        try container.encodeIfPresent(parallelToolCalls, forKey: .parallelToolCalls)
+        try container.encodeIfPresent(prediction, forKey: .prediction)
+        try container.encodeIfPresent(presencePenalty, forKey: .presencePenalty)
+        try container.encodeIfPresent(responseFormat, forKey: .responseFormat)
+        try container.encodeIfPresent(seed, forKey: .seed)
+        try container.encodeIfPresent(serviceTier, forKey: .serviceTier)
+        try container.encodeIfPresent(stop, forKey: .stop)
+        try container.encodeIfPresent(store, forKey: .store)
+        try container.encodeIfPresent(temperature, forKey: .temperature)
+        try container.encodeIfPresent(toolChoice, forKey: .toolChoice)
+        try container.encodeIfPresent(tools, forKey: .tools)
+        try container.encodeIfPresent(topLogprobs, forKey: .topLogprobs)
+        try container.encodeIfPresent(topP, forKey: .topP)
+        try container.encodeIfPresent(user, forKey: .user)
+        try container.encodeIfPresent(webSearchOptions, forKey: .webSearchOptions)
+        try container.encode(stream, forKey: .stream)
+        try container.encodeIfPresent(streamOptions, forKey: .streamOptions)
+        try container.encodeIfPresent(audioOptions, forKey: .audioOptions)
+        try container.encodeIfPresent(modalities, forKey: .modalities)
+
+        try encoder.encodeExtraBody(extraBody)
     }
 }
 

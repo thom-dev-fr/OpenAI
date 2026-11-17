@@ -235,6 +235,90 @@ struct ChatQueryCodingTests {
         #expect(try equal(query, expected))
     }
     
+    @Test func encodeExtraBodyAsTopLevelFields() throws {
+        let query = ChatQuery(
+            messages: [.user(.init(content: .string("Hi")))],
+            model: "qwen3",
+            extraBody: [
+                "chat_template_kwargs": AnyJSONDocument(["enable_thinking": false]),
+                "top_k": AnyJSONDocument(40)
+            ]
+        )
+
+        let expected = """
+        {
+            "model": "qwen3",
+            "messages": [{"role": "user", "content": "Hi"}],
+            "stream": false,
+            "chat_template_kwargs": {"enable_thinking": false},
+            "top_k": 40
+        }
+        """
+
+        #expect(try equal(query, expected))
+    }
+
+    @Test func extraBodyReplaceStandardFields() throws {
+        let query = ChatQuery(
+            messages: [],
+            model: .gpt4_o,
+            temperature: 0.5,
+            extraBody: ["temperature": AnyJSONDocument(1)]
+        )
+
+        let encoded = try encodedAndComparable(query)
+        #expect(encoded["temperature"] as? Int == 1)
+    }
+
+    @available(*, deprecated)
+    @Test func encodeDeprecatedMaxTokens() throws {
+        var query = ChatQuery(messages: [], model: .gpt4_o)
+        query.maxTokens = 42
+
+        let encoded = try encodedAndComparable(query)
+        #expect(encoded["max_tokens"] as? Int == 42)
+    }
+
+    /// `ChatQuery.encode(to:)` is hand-written, so a field added to `CodingKeys` but not to it would silently not be sent.
+    @available(*, deprecated)
+    @Test func encodeEncodesEveryCodingKey() throws {
+        var query = ChatQuery(
+            messages: [.user(.init(content: .string("Hi")))],
+            model: .gpt4_o,
+            modalities: [.text, .audio],
+            audioOptions: .init(format: .pcm16, voice: .alloy),
+            reasoningEffort: .low,
+            frequencyPenalty: 0.1,
+            logitBias: ["1": 1],
+            logprobs: true,
+            maxCompletionTokens: 10,
+            metadata: ["key": "value"],
+            n: 1,
+            parallelToolCalls: true,
+            prediction: .staticContent(.init(content: .textContent("text_content"))),
+            presencePenalty: 0.1,
+            responseFormat: .jsonObject,
+            seed: 1,
+            serviceTier: .flexTier,
+            stop: .init(string: "stop"),
+            store: true,
+            temperature: 0.5,
+            toolChoice: .function("get_current_weather"),
+            tools: [.makeWeatherMock()],
+            topLogprobs: 1,
+            topP: 0.5,
+            user: "user",
+            webSearchOptions: .init(userLocation: nil, searchContextSize: .medium),
+            stream: true,
+            streamOptions: .init(includeUsage: true)
+        )
+        query.maxTokens = 10
+
+        let encodedKeys = Set(try encodedAndComparable(query).allKeys.compactMap { $0 as? String })
+        let codingKeys = Set(ChatQuery.CodingKeys.allCases.map(\.rawValue))
+        #expect(encodedKeys == codingKeys)
+    }
+
     private func equal(_ query: Codable, _ expected: String) throws -> Bool {
         let encodedQuery = try encodedAndComparable(query)
         let decodedExpectation = try decodedAndComparable(expected)

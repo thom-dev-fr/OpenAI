@@ -134,6 +134,15 @@ public struct CreateModelResponseQuery: Codable, Equatable, Sendable {
     /// A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.
     /// [Learn more](https://platform.openai.com/docs/guides/safety-best-practices#end-user-ids).
     public let user: String?
+
+    /// Add additional JSON properties to the request
+    ///
+    /// Properties are added at the top level of the request body. A property with the same
+    /// JSON name as a standard property overrides its value, as with `extra_body` in the
+    /// [official Python SDK](https://github.com/openai/openai-python#undocumented-request-params).
+    ///
+    /// - Note: `extraBody` is only encoded. Decoding a `CreateModelResponseQuery` leaves it `nil`.
+    public private(set) var extraBody: JSONObject? = nil
     
     public init(
         input: Input,
@@ -160,6 +169,60 @@ public struct CreateModelResponseQuery: Codable, Equatable, Sendable {
         truncation: String? = nil,
         user: String? = nil
     ) {
+        self.init(
+            input: input,
+            model: model,
+            include: include,
+            background: background,
+            contextManagement: contextManagement,
+            instructions: instructions,
+            maxOutputTokens: maxOutputTokens,
+            metadata: metadata,
+            parallelToolCalls: parallelToolCalls,
+            previousResponseId: previousResponseId,
+            prompt: prompt,
+            promptCacheKey: promptCacheKey,
+            reasoning: reasoning,
+            serviceTier: serviceTier,
+            store: store,
+            stream: stream,
+            temperature: temperature,
+            text: text,
+            toolChoice: toolChoice,
+            tools: tools,
+            topP: topP,
+            truncation: truncation,
+            user: user,
+            extraBody: nil
+        )
+    }
+
+    public init(
+        input: Input,
+        model: String? = nil,
+        include: [Schemas.IncludeEnum]? = nil,
+        background: Bool? = nil,
+        contextManagement: [Schemas.ContextManagementParam]? = nil,
+        instructions: String? = nil,
+        maxOutputTokens: Int? = nil,
+        metadata: Schemas.Metadata? = nil,
+        parallelToolCalls: Bool? = nil,
+        previousResponseId: String? = nil,
+        prompt: Schemas.Prompt? = nil,
+        promptCacheKey: String? = nil,
+        reasoning: Schemas.Reasoning? = nil,
+        serviceTier: ServiceTier? = nil,
+        store: Bool? = nil,
+        stream: Bool? = nil,
+        temperature: Double? = nil,
+        text: TextResponseConfigurationOptions? = nil,
+        toolChoice: Schemas.ToolChoiceParam? = nil,
+        tools: [Tool]? = nil,
+        topP: Double? = nil,
+        truncation: String? = nil,
+        user: String? = nil,
+        extraBody: JSONObject?
+    ) {
         self.input = input
         self.model = model
         self.include = include
@@ -183,6 +246,7 @@ public struct CreateModelResponseQuery: Codable, Equatable, Sendable {
         self.topP = topP
         self.truncation = truncation
         self.user = user
+        self.extraBody = extraBody
     }
     
     private enum CodingKeys: String, CodingKey {
@@ -209,5 +273,37 @@ public struct CreateModelResponseQuery: Codable, Equatable, Sendable {
         case topP = "top_p"
         case truncation
         case user
+    }
+
+    // Hand-written so that `extraBody` can be added as top-level fields.
+    // Every case of `CodingKeys` must be encoded here; `CreateModelResponseQueryCodingTests` checks this.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(input, forKey: .input)
+        try container.encodeIfPresent(model, forKey: .model)
+        try container.encodeIfPresent(include, forKey: .include)
+        try container.encodeIfPresent(background, forKey: .background)
+        try container.encodeIfPresent(contextManagement, forKey: .contextManagement)
+        try container.encodeIfPresent(instructions, forKey: .instructions)
+        try container.encodeIfPresent(maxOutputTokens, forKey: .maxOutputTokens)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encodeIfPresent(parallelToolCalls, forKey: .parallelToolCalls)
+        try container.encodeIfPresent(previousResponseId, forKey: .previousResponseId)
+        try container.encodeIfPresent(prompt, forKey: .prompt)
+        try container.encodeIfPresent(promptCacheKey, forKey: .promptCacheKey)
+        try container.encodeIfPresent(reasoning, forKey: .reasoning)
+        try container.encodeIfPresent(serviceTier, forKey: .serviceTier)
+        try container.encodeIfPresent(store, forKey: .store)
+        try container.encodeIfPresent(stream, forKey: .stream)
+        try container.encodeIfPresent(temperature, forKey: .temperature)
+        try container.encodeIfPresent(text, forKey: .text)
+        try container.encodeIfPresent(toolChoice, forKey: .toolChoice)
+        try container.encodeIfPresent(tools, forKey: .tools)
+        try container.encodeIfPresent(topP, forKey: .topP)
+        try container.encodeIfPresent(truncation, forKey: .truncation)
+        try container.encodeIfPresent(user, forKey: .user)
+
+        try encoder.encodeExtraBody(extraBody)
     }
 }

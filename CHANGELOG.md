@@ -12,6 +12,7 @@ Compatibility promise: the public API is additive-only. Anything `public` is dep
 - `APIError` now decodes a numeric `code`, as sent by `llama.cpp` server, as its string form instead of failing to decode the error.
 
 ### Added
+- `ChatQuery.extraBody` and `CreateModelResponseQuery.extraBody` add top-level request properties, including for streaming. Matching standard properties are replaced, as with `extra_body` in the official Python SDK. `ChatQuery.CodingKeys` now conforms to `CaseIterable`.
 - `AnyJSONDocument.null`, a public value for an explicit JSON `null`. `JSONObject` and `AnyJSONDocument.value` are now public so wrapped JSON values can be built and read.
 
 ## [0.6.1] - 2026-11-15
