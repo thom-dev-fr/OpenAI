@@ -1732,7 +1732,24 @@ Some fields are required to be present (non-optional) by OpenAI, but other provi
 Use `.fillRequiredFieldIfValueNotFound` to handle missing values
 
 #### What if a provider returns additional fields?
-Currently we handle such cases by simply adding additional fields to main model set. This is possible because optional fields wouldn't break or conflict with OpenAI's scheme. At the moment, such additional fields are added:
+`ChatResult` and `ChatStreamResult` expose unmodeled top-level properties through `extraFields`. The dictionary is `nil` when no such properties exist. Use `extraField(_:as:)` to decode a property into your own type:
+
+```swift
+struct Timings: Decodable {
+    let predicted_per_second: Double
+}
+
+if let timings = try result.extraField("timings", as: Timings.self) {
+    print(timings.predicted_per_second)
+}
+
+// Inspect or save the wrapped JSON values directly.
+let additionalProperties: JSONObject? = result.extraFields
+```
+
+The typed accessor uses a `JSONDecoder` with default strategies. It returns `nil` for an absent key and throws if the value cannot be decoded as the requested type. For a nullable value, request an optional type (for example `Int?.self`): an explicit JSON `null` returns `.some(nil)`, while an absent key returns `nil`.
+
+Only top-level properties are collected. Unknown fields inside `choices`, messages, or other nested objects are not included. Already modeled properties remain available through their typed members. Examples include:
 
 `ChatResult`
 
@@ -1742,6 +1759,10 @@ Currently we handle such cases by simply adding additional fields to main model 
 
 * `reasoningContent` [Grok](https://docs.x.ai/docs/api-reference#chat-completions), [DeepSeek](https://api-docs.deepseek.com/api/create-chat-completion#responses)
 * `reasoning` [OpenRouter](https://openrouter.ai/docs/use-cases/reasoning-tokens#basic-usage-with-reasoning-tokens)
+
+#### Saving responses
+
+`extraFields` is decoded from a response but is omitted when encoding `ChatResult` or `ChatStreamResult`. A JSON encode/decode round trip therefore does **not** preserve these properties. Save the `JSONObject` dictionary separately using `JSONEncoder` and restore it using `JSONDecoder`. Keep the restored dictionary alongside the decoded response, or save the original response JSON if it is available to your application.
 
 ## Example Project
 

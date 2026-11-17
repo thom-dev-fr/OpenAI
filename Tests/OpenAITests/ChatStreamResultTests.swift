@@ -174,6 +174,70 @@ final class ChatStreamResultTests: XCTestCase {
         XCTAssertNil(audio.expiresAt)
     }
     
+    func testDecodeExtraFields() throws {
+        let jsonString = """
+            {
+                "id": "chatcmpl-1",
+                "object": "chat.completion.chunk",
+                "created": 1677652288,
+                "model": "qwen3",
+                "choices": [],
+                "service_tier": "default",
+                "prompt_progress": {"total": 200, "cache": 50, "processed": 100, "time_ms": 120},
+                "timings": {"prompt_n": 150, "predicted_n": 20, "predicted_per_second": 50.5},
+                "provider": "local",
+                "nothing": null
+            }
+            """
+
+        let result = try decode(jsonString)
+        let extraFields = try XCTUnwrap(result.extraFields)
+        XCTAssertEqual(Set(extraFields.keys), ["prompt_progress", "timings", "provider", "nothing"])
+        XCTAssertEqual(extraFields["provider"], AnyJSONDocument("local"))
+        XCTAssertEqual(result.serviceTier, .defaultTier)
+    }
+
+    func testDecodeExtraFieldAsType() throws {
+        struct Timings: Decodable, Equatable {
+            let prompt_n: Int
+            let predicted_per_second: Double
+        }
+        let jsonString = """
+            {
+                "id": "chatcmpl-1",
+                "object": "chat.completion.chunk",
+                "created": 1677652288,
+                "model": "qwen3",
+                "choices": [],
+                "timings": {"prompt_n": 150, "predicted_n": 20, "predicted_per_second": 50.5},
+                "nothing": null
+            }
+            """
+
+        let result = try decode(jsonString)
+        XCTAssertEqual(try result.extraField("timings", as: Timings.self), Timings(prompt_n: 150, predicted_per_second: 50.5))
+        XCTAssertNil(try result.extraField("missing", as: Timings.self))
+        XCTAssertEqual(try result.extraField("nothing", as: Int?.self), .some(nil))
+        XCTAssertThrowsError(try result.extraField("timings", as: String.self))
+    }
+
+    func testExtraFieldsIsNilWithoutUnknownFields() throws {
+        let jsonString = """
+            {
+                "id": "chatcmpl-1",
+                "object": "chat.completion.chunk",
+                "created": 1677652288,
+                "model": "gpt-4",
+                "choices": [],
+                "usage": null,
+                "citations": ["https://example.com"]
+            }
+            """
+
+        let result = try decode(jsonString)
+        XCTAssertNil(result.extraFields)
+    }
+
     private func decode(_ jsonString: String) throws -> ChatStreamResult {
         let jsonData = jsonString.data(using: .utf8)!
         return try decoder.decode(ChatStreamResult.self, from: jsonData)

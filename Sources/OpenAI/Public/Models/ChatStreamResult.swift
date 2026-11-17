@@ -230,6 +230,27 @@ public struct ChatStreamResult: Codable, Equatable, Sendable {
     /// - Note: the field is not a part of OpenAI API but is used by other providers
     public let citations: [String]?
 
+    /// Additional top-level response properties not represented by this type, keyed by their JSON names.
+    ///
+    /// Read a property with ``extraField(_:as:)``, or inspect ``AnyJSONDocument/value`` directly.
+    /// The dictionary is `nil` when there are no additional properties.
+    ///
+    /// - Note: These properties are only decoded. Encoding a `ChatStreamResult` omits them.
+    public let extraFields: JSONObject?
+
+    /// Decodes an additional response property as the requested type.
+    ///
+    /// Uses a `JSONDecoder` with its default decoding strategies.
+    ///
+    /// - Parameters:
+    ///   - key: The JSON name of the property.
+    ///   - type: The type to decode the property as.
+    /// - Returns: The decoded value, or `nil` if the property is absent.
+    /// - Throws: An error if the stored value cannot be encoded or decoded as the requested type.
+    public func extraField<T: Decodable>(_ key: String, as type: T.Type) throws -> T? {
+        try extraFields?.decodeValue(forKey: key, as: type)
+    }
+
     public enum CodingKeys: String, CodingKey {
         case id
         case object
@@ -261,5 +282,7 @@ public struct ChatStreamResult: Codable, Equatable, Sendable {
         // We're just going to ignore all the errors here by using optional try and fallback to nil `usage`
         self.usage = try? container.decodeIfPresent(ChatResult.CompletionUsage.self, forKey: .usage)
         self.serviceTier = try container.decodeIfPresent(ServiceTier.self, forKey: .serviceTier)
+
+        self.extraFields = try decoder.decodeExtraFields(excluding: CodingKeys.self)
     }
 }

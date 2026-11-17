@@ -51,6 +51,27 @@ public struct ChatResult: Codable, Equatable, Sendable {
     /// https://docs.perplexity.ai/api-reference/chat-completions#response-citations
     public let citations: [String]?
 
+    /// Additional top-level response properties not represented by this type, keyed by their JSON names.
+    ///
+    /// Read a property with ``extraField(_:as:)``, or inspect ``AnyJSONDocument/value`` directly.
+    /// The dictionary is `nil` when there are no additional properties.
+    ///
+    /// - Note: These properties are only decoded. Encoding a `ChatResult` omits them.
+    public let extraFields: JSONObject?
+
+    /// Decodes an additional response property as the requested type.
+    ///
+    /// Uses a `JSONDecoder` with its default decoding strategies.
+    ///
+    /// - Parameters:
+    ///   - key: The JSON name of the property.
+    ///   - type: The type to decode the property as.
+    /// - Returns: The decoded value, or `nil` if the property is absent.
+    /// - Throws: An error if the stored value cannot be encoded or decoded as the requested type.
+    public func extraField<T: Decodable>(_ key: String, as type: T.Type) throws -> T? {
+        try extraFields?.decodeValue(forKey: key, as: type)
+    }
+
     public enum CodingKeys: String, CodingKey {
         case id
         case object
@@ -63,7 +84,7 @@ public struct ChatResult: Codable, Equatable, Sendable {
         case citations
     }
     
-    init(id: String, created: Int, model: String, object: String, serviceTier: ServiceTier? = nil, systemFingerprint: String? = nil, choices: [Choice], usage: Self.CompletionUsage? = nil, citations: [String]? = nil) {
+    init(id: String, created: Int, model: String, object: String, serviceTier: ServiceTier? = nil, systemFingerprint: String? = nil, choices: [Choice], usage: Self.CompletionUsage? = nil, citations: [String]? = nil, extraFields: JSONObject? = nil) {
         self.id = id
         self.created = created
         self.model = model
@@ -73,6 +94,7 @@ public struct ChatResult: Codable, Equatable, Sendable {
         self.choices = choices
         self.usage = usage
         self.citations = citations
+        self.extraFields = extraFields
     }
     
     public init(from decoder: any Decoder) throws {
@@ -90,6 +112,7 @@ public struct ChatResult: Codable, Equatable, Sendable {
         // See: https://github.com/MacPaw/OpenAI/issues/338 for more details
         self.usage = try? container.decodeIfPresent(ChatResult.CompletionUsage.self, forKey: .usage)
         self.citations = try container.decodeIfPresent([String].self, forKey: .citations)
+        self.extraFields = try decoder.decodeExtraFields(excluding: CodingKeys.self)
     }
     
     public struct Choice: Codable, Equatable, Sendable {
